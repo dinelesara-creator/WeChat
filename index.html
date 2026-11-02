@@ -643,37 +643,74 @@
       $("messages").scrollTop = $("messages").scrollHeight;
     }
 
-    async function loadHistory() {
-      $("messages").replaceChildren();
-      knownMessageIds.clear();
-      messageCache.clear();
 
-      const { data, error } = await supabase
-        .from("messages")
-        .select("id, sender_email, body, created_at, reply_to_id, media_path, media_type, deleted_at")
-        .order("created_at", { ascending: true })
-        .limit(1000000);
+     async function loadHistory() {
+  const messagesContainer = $("messages");
 
-      if (error) {
-        setChatStatus("Could not load messages: " + error.message +
-          " (check that the SQL migration has been applied)");
-        return;
-      }
+  messagesContainer.replaceChildren();
+  knownMessageIds.clear();
+  messageCache.clear();
 
-      if (!data.length) {
-        const welcome = document.createElement("div");
-        welcome.className = "welcome";
-        welcome.textContent = "Send your messages here.";
-        $("messages").appendChild(welcome);
-        return;
-      }
+  const PAGE_SIZE = 500;
+  const allMessages = [];
+  let from = 0;
 
-      // Cache the full page first so replies can resolve even if ordering varies.
-      data.forEach(message => messageCache.set(String(message.id), message));
-      data.forEach(message => messageCache.delete(String(message.id)));
-      for (const message of data) await renderMessage(message);
+  // Load the entire conversation in pages instead of stopping at 500.
+  while (true) {
+    const { data, error } = await supabase
+      .from("messages")
+      .select(
+        "id, sender_email, body, created_at, reply_to_id, media_path, media_type, deleted_at"
+      )
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) {
+      setChatStatus(
+        "Could not load messages: " + error.message
+      );
+      return;
     }
 
+    const page = data || [];
+
+    allMessages.push(...page);
+
+    // A shorter page means we have reached the end.
+    if (page.length < PAGE_SIZE) {
+      break;
+    }
+
+    from += PAGE_SIZE;
+  }
+
+  if (allMessages.length === 0) {
+    const welcome = document.createElement("div");
+    welcome.className = "welcome";
+    welcome.textContent = "Send your messages here.";
+    messagesContainer.appendChild(welcome);
+    return;
+  }
+
+  // Populate the cache before rendering, so reply previews
+  // can find their original messages.
+  for (const message of allMessages) {
+    messageCache.set(String(message.id), message);
+  }
+
+  // Render each message in chronological order.
+  for (const message of allMessages) {
+    await renderMessage(message);
+  }
+}
+
+
+
+
+
+
+    
     function setReplyTarget(message) {
       replyTarget = message;
       $("replyText").textContent = safeText(message.body ||
