@@ -432,18 +432,14 @@
           <button class="emoji" type="button">🥹</button>
           <button class="emoji" type="button">😘</button>
           <button class="emoji" type="button">🫶</button>
-          <button class="emoji" type="button">💕</button>
           <button class="emoji" type="button">🌹</button>
           <button class="emoji" type="button">🥰</button>
           <button class="emoji" type="button">💋</button>
-          <button class="emoji" type="button">😗</button>
           <button class="emoji" type="button">😋</button>
           <button class="emoji" type="button">😛</button>
-          <button class="emoji" type="button">🥺</button>
-          <button class="emoji" type="button">😢</button>
           <button class="emoji" type="button">😭</button>
-          <button class="emoji" type="button">😮‍💨</button>
-          <button class="emoji" type="button">😤</button>
+          
+       
 
 
 
@@ -656,7 +652,7 @@
         .from("messages")
         .select("id, sender_email, body, created_at, reply_to_id, media_path, media_type, deleted_at")
         .order("created_at", { ascending: true })
-        .limit(500);
+        .limit(1000000);
 
       if (error) {
         setChatStatus("Could not load messages: " + error.message +
